@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>材料库 - 滚动交错渐显 + 详情翻转 (ScrollTrigger.batch + Flip)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+        }
+        .header {
+            height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 4rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header p {
+            font-size: 1.2rem;
+            color: #888;
+        }
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .gallery-item {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 1;
+            opacity: 0; /* 初始隐藏，由GSAP控制 */
+            transform: translateY(50px);
+            cursor: pointer;
+            background-color: #222;
+        }
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 12px; /* 自身带圆角，脱离裁剪时依然圆润 */
+            transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .gallery-item:hover img {
+            transform: scale(1.1);
+        }
+        .gallery-item .overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            padding: 20px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            pointer-events: none; /* 让点击穿透给图片 */
+        }
+        .gallery-item:hover .overlay {
+            transform: translateY(0);
+        }
+
+        /* 详情视图 (全屏) */
+        .detail-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85); /* 降低透明度 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1000;
+            transition: opacity 0.5s ease; /* 增加透明度渐变过渡，关闭时不那么生硬 */
+        }
+        .detail-view.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .detail-content {
+            width: 80vw;
+            height: 80vh;
+            max-width: 1200px;
+            display: flex;
+            gap: 50px;
+            align-items: center;
+        }
+        .detail-image-container {
+            width: 45%;
+            aspect-ratio: 1; /* 强制1:1正方形，与缩略图比例一致，根除动画抖动 */
+            height: auto;
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .detail-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 统一使用 cover */
+            border-radius: 16px; /* 大图状态的圆角 */
+        }
+        .detail-text {
+            width: 50%;
+            opacity: 0;
+            transform: translateX(30px);
+        }
+        .detail-text h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #feca57;
+        }
+        .detail-text p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #ccc;
+            margin-bottom: 10px;
+        }
+        .no-transition {
+            transition: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>高级材料库展示</h1>
+        <p>向下滚动查看交错渐显特效，点击任意图片翻转查看详细信息</p>
+    </div>
+
+    <div class="gallery" id="gallery">
+        <!-- 图片由JS动态生成 -->
+    </div>
+
+    <div style="height: 20vh;"></div>
+
+    <!-- 详情弹窗 -->
+    <div class="detail-view" id="detail-view" style="cursor: pointer;">
+        <div class="detail-content">
+            <div class="detail-image-container" id="detail-image-container">
+                <!-- 放大后的图片会移动到这里 -->
+            </div>
+            <div class="detail-text" id="detail-text">
+                <h2 id="detail-title">材料名称</h2>
+                <p>点击后，小图通过 <strong>GSAP Flip</strong> 技术无缝平滑翻转成高清大图。</p>
+                <p>这是真实的高级材料展示项目中最受青睐的呈现方式。它不仅保留了用户的视觉焦点，还在大图右侧提供了充足的空间用于显示材料成分、尺寸、价格以及应用场景等详细信息。</p>
+                <p><strong>分类：</strong> 艺术花砖 / 瓷砖</p>
+                <p><strong>推荐用途：</strong> 厨房防溅板、卫生间局部点缀、玄关地面等。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入 GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Flip.min.js"></script>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger, Flip);
+
+        // 扩充了图片数量 (24张)
+        const images = [
+            '小花砖_1-花砖_仿古砖_法式复古植物花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_北欧简约花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_墨绿色造型雕花瓷砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_复古墨绿色几何图案花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_复古彩色拼花花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_复古风_法式_花片砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_拼花花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_摩洛哥复古彩色花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝_灰色花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝中古复古花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝中式花鸟花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝南洋风花鸟花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝小法中古花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝小法中古花鸟柔光砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝法式中古植物花鸟花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝法式米黄色花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝法式花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝浅灰色花鸟花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝灰白色银杏叶花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝热带植物花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝现代简约拼花瓷砖花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝竹影花片砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝绿色小清新叶子植物  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝绿色花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_暖色小花长条花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (1)(1).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (1).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (10).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (11).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (12).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (13).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (15).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (16).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (17).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (18).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (19).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (2)(1).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (20).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (21).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (22).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (23).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (26).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (27).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (28).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (29).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (3).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (30).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (31).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (32).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (34).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (35).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (36).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (38).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (39).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (4).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (40).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (41).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (42).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (5).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (6).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (7).jpg',
+            '小花砖_1-花砖_更多免费资料到www.172pay.com (9).jpg',
+            '小花砖_1-花砖_植物图案瓷砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_法式复古花砖_连纹砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_法式复古花砖_连纹砖贴图 (2)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_法式复古花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_法式复古花砖贴图 (2)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_法式花砖立体砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_法式花砖艺术砖_立体砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_浅色玫瑰拼花哑光砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_现代简约拼花瓷砖花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_现代简约花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_现代简约黑白拼花瓷砖花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_现代花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_石材拼花_绿色石材拼花贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_艺术花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (1)(1).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (1).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (10).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (11).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (13).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (14).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (16).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (17).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (18).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (19).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (2)(1).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (2).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (20).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (22).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (25).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (26).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (3).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (30).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (31).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (33).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (34).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (36).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (37).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (38).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (39).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (41).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (42).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (43).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (44).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (45).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (46).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (47).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (48).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (49).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (5).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (6).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (7).jpg',
+            '小花砖_2-花砖_更多免费资料到www.172pay.com (8).jpg',
+            '小花砖_3-花砖_花砖 (1)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (10)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (100)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (101)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (102)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (103)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (106)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (107)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (108)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (11)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (110)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (111)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (112)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (113)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (115)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (117)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (118)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (12)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (120)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (121)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (123)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (124)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (125)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (127)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (129)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (13)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (130)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (131)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (132)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (133)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (134)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (135)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (136)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (137)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (139)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (14)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (140)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (142)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (144)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (145)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (146)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (148)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (149)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (15)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (150)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (151)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (153)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (154)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (155)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (156)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (157)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (158)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (159)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (16)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (161)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (162)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (163)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (164)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (165)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (167)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (168)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (169)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (17)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (170)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (171)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (172)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (173)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (174)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (175)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (176)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (18)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (180)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (181)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (182)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (183)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (184)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (185)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (186)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (188)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (189)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (19)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (190)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (191)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (192)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (193)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (194)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (196)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (197)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (198)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (199)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (20)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (200)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (201)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (203)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (204)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (205)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (206)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (207)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (208)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (209)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (21)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (210)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (211)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (212)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (213)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (214)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (215)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (216)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (217)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (218)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (219)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (22)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (220)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (221)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (222)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (223)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (225)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (226)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (227)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (228)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (23)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (230)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (231)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (232)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (233)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (235)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (24)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (25)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (26)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (27)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (28)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (29)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (3)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (30)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (31)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (32)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (33)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (34)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (36)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (37)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (38)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (39)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (4)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (40)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (41)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (42)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (43)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (44)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (45)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (46)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (47)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (48)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (5)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (50)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (51)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (52)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (53)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (54)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (55)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (56)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (58)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (6)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (61)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (63)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (64)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (65)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (66)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (67)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (68)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (69)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (7)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (70)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (71)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (72)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (73)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (74)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (76)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (77)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (78)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (79)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (8)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (80)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (81)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (82)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (83)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (84)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (86)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (87)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (89)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (9)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (91)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (92)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (94)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (95)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (96)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (97)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (98)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_3-花砖_花砖 (99)  更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (1) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (10) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (11) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (12) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (13) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (14) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (15) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (16) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (17) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (18) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (19) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (2) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (20) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (21) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (22) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (23) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (24) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (25) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (26) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (27) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (28) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (29) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (3) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (30) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (31) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (32) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (33) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (35) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (36) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (37) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (39) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (4) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (40) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (41) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (42) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (44) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (45) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (46) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (48) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (49) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (5) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (50) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (6) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (7) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (8) 更多免费资料到www.172pay.com.jpg',
+            '小花砖_4-花砖_艺术花砖 (9) 更多免费资料到www.172pay.com.jpg'
+        ];
+
+        const basePath = '/Users/dufangchi/Documents/材料库raw_resize/小花砖/';
+        const gallery = document.getElementById('gallery');
+        const detailView = document.getElementById('detail-view');
+        const detailImageContainer = document.getElementById('detail-image-container');
+        const detailText = document.getElementById('detail-text');
+        const detailTitle = document.getElementById('detail-title');
+
+        // 1. 动态生成网格
+        images.forEach((imgName, index) => {
+            const item = document.createElement('div');
+            item.className = 'gallery-item';
+            
+            const img = document.createElement('img');
+            img.src = basePath + imgName;
+            img.dataset.name = `精品花砖 序列号 00${index + 1}`;
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'overlay';
+            overlay.innerHTML = `<span style="font-weight: bold; color: white;">点击查看详情</span>`;
+
+            item.appendChild(img);
+            item.appendChild(overlay);
+            gallery.appendChild(item);
+        });
+
+        // 2. 绑定 ScrollTrigger 滚动渐显动画 (使用 batch 批量交错)
+        const items = gsap.utils.toArray('.gallery-item');
+        
+        ScrollTrigger.batch(".gallery-item", {
+            start: "top 95%",
+            onEnter: batch => gsap.to(batch, {
+                opacity: 1, 
+                y: 0, 
+                stagger: 0.15, 
+                duration: 0.8, 
+                ease: "power3.out",
+                overwrite: true
+            })
+        });
+
+        // 3. 绑定 Flip 翻转详情逻辑
+        let activeImage = null; 
+        let activeThumbContainer = null;
+
+        items.forEach((item) => {
+            const img = item.querySelector('img');
+            
+            item.addEventListener('click', () => {
+                if (activeImage) return; // 防止重复点击
+                
+                activeImage = img;
+                activeThumbContainer = item;
+                detailTitle.textContent = img.dataset.name;
+
+                // 移除hover放大状态带来的干扰，回归初始比例，并禁用CSS transition
+                gsap.set(activeImage, { clearProps: "transform" });
+                activeImage.classList.add('no-transition');
+
+                // 记录 Flip 初始状态
+                const state = Flip.getState(activeImage);
+
+                // 将图片从网格DOM移入详情弹窗DOM
+                detailImageContainer.appendChild(activeImage);
+                detailView.classList.add('active');
+                
+                // 为了防止滚动穿透导致位置偏差，可暂时禁止body滚动
+                document.body.style.overflow = 'hidden';
+
+                // 播放 Flip 过渡动画
+                Flip.from(state, {
+                    duration: 0.7,
+                    ease: "power3.inOut",
+                    absolute: true,
+                    props: "borderRadius",
+                    onComplete: () => {
+                        // 翻转完成后，文字划入
+                        gsap.to(detailText, { opacity: 1, x: 0, duration: 0.4 });
+                    }
+                });
+            });
+        });
+
+        // 4. 关闭详情页逻辑
+        detailView.addEventListener('click', () => {
+            if (!activeImage) return;
+
+            // 文字滑出
+            gsap.to(detailText, { opacity: 0, x: 30, duration: 0.2 });
+            detailView.classList.remove('active');
+            
+            // 恢复滚动
+            document.body.style.overflow = '';
+
+            // 关闭前确保仍然禁用 CSS transition
+            activeImage.classList.add('no-transition');
+            
+            // 为了防止 hover 在结束瞬间触发导致突变，先给网格项加上禁用事件的样式
+            activeThumbContainer.style.pointerEvents = 'none';
+            // 【关键修复】防止返回时被容器的 overflow: hidden 裁剪导致在格子里才有动画
+            // 且 zIndex 必须大于 1000（detail-view 的层级），否则图片会瞬间被黑色遮罩盖住产生“闪黑”
+            activeThumbContainer.style.overflow = 'visible';
+            activeThumbContainer.style.zIndex = '1001';
+
+            // 记录当前大图状态
+            const state = Flip.getState(activeImage);
+
+            // 放回网格原来的容器内
+            activeThumbContainer.appendChild(activeImage);
+
+            // 逆向执行 Flip 动画
+            Flip.from(state, {
+                duration: 0.7,
+                ease: "power3.inOut",
+                absolute: true,
+                props: "borderRadius",
+                onComplete: () => {
+                    // 动画完全结束后，恢复元素的 CSS 样式
+                    gsap.set(activeImage, { clearProps: "all" });
+                    activeImage.classList.remove('no-transition');
+                    activeThumbContainer.style.pointerEvents = ''; // 恢复 hover
+                    activeThumbContainer.style.overflow = '';
+                    activeThumbContainer.style.zIndex = '';
+                    activeImage = null;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
