@@ -1,0 +1,9 @@
+{
+  "name": "thibaultguignand-wrapper",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm run dev --prefix portfolio-replica",
+    "build": "npm run build --prefix portfolio-replica",
+    "install": "npm install --prefix portfolio-replica"
+  }
+}

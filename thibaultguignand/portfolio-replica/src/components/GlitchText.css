@@ -1,0 +1,13 @@
+.glitch-text-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 20;
+  pointer-events: none !important;
+}
+
+.glitch-text-container * {
+  pointer-events: none !important;
+}
