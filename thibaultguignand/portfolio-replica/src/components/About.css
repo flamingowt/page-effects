@@ -1,0 +1,17 @@
+.about-section {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+}
+
+.about-text {
+  font-size: clamp(1.5rem, 4vw, 3rem);
+  line-height: 1.4;
+  font-weight: 400;
+  max-width: 1200px;
+}
+
+.about-word {
+  display: inline-block;
+  will-change: transform, opacity;
+}

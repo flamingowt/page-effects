@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>材料库 - Scrubbed Bento Gallery</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+        }
+        
+        p {
+          font-size: 1.2rem;
+          margin-bottom: 1rem;
+          color: #aaa;
+        }
+
+        .gallery-wrap {
+          position: relative;
+          width: 100%;
+          height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+        }
+
+        .gallery {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          flex: none;
+        }
+
+        .gallery__item {
+          background-position: 50% 50%;
+          background-size: cover;
+          flex: none;
+          position: relative;
+          border-radius: 8px; /* 加一点圆角让便当盒效果更好 */
+          overflow: hidden;
+        }
+        
+        .gallery__item img {
+          object-fit: cover;
+          width: 100%;
+          height: 100%;
+        }
+
+        .gallery--bento {
+          display: grid;
+          gap: 1vh;
+          grid-template-columns: repeat(3, 32.5vw);
+          grid-template-rows: repeat(4, 23vh);
+          justify-content: center;
+          align-content: center;
+        }
+
+        .gallery--final.gallery--bento {
+          grid-template-columns: repeat(3, 100vw);
+          grid-template-rows: repeat(4, 49.5vh);
+          gap: 1vh;
+        }
+
+        .gallery--bento .gallery__item:nth-child(1) {
+          grid-area: 1 / 1 / 3 / 2;
+        }
+
+        .gallery--bento .gallery__item:nth-child(2) {
+          grid-area: 1 / 2 / 2 / 3;
+        }
+
+        .gallery--bento .gallery__item:nth-child(3) {
+          grid-area: 2 / 2 / 4 / 3;
+        }
+
+        .gallery--bento .gallery__item:nth-child(4) {
+          grid-area: 1 / 3 / 3 / 3;
+        }
+
+        .gallery--bento .gallery__item:nth-child(5) {
+          grid-area: 3 / 1 / 3 / 2;
+        }
+
+        .gallery--bento .gallery__item:nth-child(6) {
+          grid-area: 3 / 3 / 5 / 4;
+        }
+
+        .gallery--bento .gallery__item:nth-child(7) {
+          grid-area: 4 / 1 / 5 / 2;
+        }
+
+        .gallery--bento .gallery__item:nth-child(8) {
+          grid-area: 4 / 2 / 5 / 3;
+        }
+
+        .section {
+          padding: 4rem 10vw;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+        
+        .section h2 {
+          font-size: 2.5rem;
+          margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="gallery-wrap">
+      <div class="gallery gallery--bento gallery--switch" id="gallery-8">
+        <div class="gallery__item">
+          <img src="/Users/dufangchi/Documents/材料库raw_resize/小花砖/小花砖_1-花砖_仿古砖_法式复古植物花砖贴图  更多免费资料到www.172pay.com.jpg" alt="" />
+        </div>
+        <div class="gallery__item">
+          <img src="/Users/dufangchi/Documents/材料库raw_resize/小花砖/小花砖_1-花砖_北欧简约花砖贴图  更多免费资料到www.172pay.com.jpg" alt="" />
+        </div>
+        <div class="gallery__item">
+          <img src="/Users/dufangchi/Documents/材料库raw_resize/小花砖/小花砖_1-花砖_墨绿色造型雕花瓷砖贴图  更多免费资料到www.172pay.com.jpg" alt="" />
+        </div>
+        <div class="gallery__item">
+          <img src="/Users/dufangchi/Documents/材料库raw_resize/小花砖/小花砖_1-花砖_复古墨绿色几何图案花砖贴图  更多免费资料到www.172pay.com.jpg" alt="" />
+        </div>
+        <div class="gallery__item">
+          <img src="/Users/dufangchi/Documents/材料库raw_resize/小花砖/小花砖_1-花砖_复古彩色拼花花砖贴图  更多免费资料到www.172pay.com.jpg" alt="" />
+        </div>
+        <div class="gallery__item">
+          <img src="/Users/dufangchi/Documents/材料库raw_resize/小花砖/小花砖_1-花砖_无缝法式米黄色花砖贴图  更多免费资料到www.172pay.com.jpg" alt="" />
+        </div>
+        <div class="gallery__item">
+          <img src="/Users/dufangchi/Documents/材料库raw_resize/小花砖/小花砖_1-花砖_无缝灰白色银杏叶花砖贴图  更多免费资料到www.172pay.com.jpg" alt="" />
+        </div>
+        <div class="gallery__item">
+          <img src="/Users/dufangchi/Documents/材料库raw_resize/小花砖/小花砖_1-花砖_现代简约花砖贴图  更多免费资料到www.172pay.com.jpg" alt="" />
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2>花砖系列展示</h2>
+      <p>体验全新的材料库浏览方式：向上滚动页面，上方的便当盒 (Bento) 布局网格将通过 GSAP 的 Flip 和 ScrollTrigger 插件，随着您的滚动平滑放大，展开为沉浸式的大图预览模式。</p>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+    </div>
+
+    <!-- 引入 GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Flip.min.js"></script>
+
+    <script>
+        console.clear();
+
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.registerPlugin(Flip);
+
+        let flipCtx;
+
+        const createTween = () => {
+          let galleryElement = document.querySelector("#gallery-8");
+          let galleryItems = galleryElement.querySelectorAll(".gallery__item");
+
+          flipCtx && flipCtx.revert();
+          galleryElement.classList.remove("gallery--final");
+
+          flipCtx = gsap.context(() => {
+            // Temporarily add the final class to capture the final state
+            galleryElement.classList.add("gallery--final");
+            const flipState = Flip.getState(galleryItems);
+            galleryElement.classList.remove("gallery--final");
+
+            const flip = Flip.to(flipState, {
+              simple: true,
+              ease: "expoScale(1, 5)"
+            });
+
+            const tl = gsap.timeline({
+              scrollTrigger: {
+                trigger: galleryElement,
+                start: "center center",
+                end: "+=100%",
+                scrub: true,
+                pin: galleryElement.parentNode
+                // markers: true
+              }
+            });
+            tl.add(flip);
+            return () => gsap.set(galleryItems, { clearProps: "all" });
+          });
+        };
+        
+        // 确保图片加载完成后再计算动画位置，避免高度/宽度计算错误
+        window.addEventListener('load', () => {
+            createTween();
+        });
+
+        window.addEventListener("resize", createTween);
+    </script>
+</body>
+</html>

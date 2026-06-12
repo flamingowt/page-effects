@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>材料库 - 横向平滑滚动特效 (GSAP Horizontal Scroll)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0d0d0d;
+            color: #fff;
+            font-family: sans-serif;
+            overflow-x: hidden;
+        }
+        .intro, .outro {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            flex-direction: column;
+        }
+        .horizontal-scroll-container {
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        .horizontal-scroll-wrapper {
+            display: flex;
+            height: 100%;
+            padding: 0 10vw;
+            align-items: center;
+            width: fit-content;
+        }
+        .panel {
+            width: 40vw;
+            height: 60vh;
+            margin-right: 5vw;
+            border-radius: 20px;
+            overflow: hidden;
+            flex-shrink: 0;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        .panel img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .panel .title {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="intro">
+        <h1>探索花砖之美</h1>
+        <p>↓ 向下滚动进入横向画廊 ↓</p>
+    </div>
+
+    <div class="horizontal-scroll-container">
+        <div class="horizontal-scroll-wrapper" id="scroll-wrapper">
+            <!-- 动态生成 -->
+        </div>
+    </div>
+
+    <div class="outro">
+        <h1>展示结束</h1>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+
+        const images = [
+            '小花砖_1-花砖_仿古砖_法式复古植物花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_北欧简约花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_墨绿色造型雕花瓷砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_复古墨绿色几何图案花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_复古彩色拼花花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_摩洛哥复古彩色花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝_灰色花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝中古复古花砖贴图  更多免费资料到www.172pay.com.jpg'
+        ];
+
+        const basePath = '/Users/dufangchi/Documents/材料库raw_resize/小花砖/';
+        const wrapper = document.getElementById('scroll-wrapper');
+
+        images.forEach((imgName, index) => {
+            const panel = document.createElement('div');
+            panel.className = 'panel';
+            panel.innerHTML = `
+                <img src="${basePath + imgName}" alt="花砖">
+                <div class="title">精品花砖 0${index + 1}</div>
+            `;
+            wrapper.appendChild(panel);
+        });
+
+        // 获取所有panel
+        const panels = gsap.utils.toArray(".panel");
+
+        // 横向滚动动画
+        gsap.to(panels, {
+            xPercent: -100 * (panels.length - 1),
+            ease: "none",
+            scrollTrigger: {
+                trigger: ".horizontal-scroll-container",
+                pin: true,
+                scrub: 1, // 平滑跟随滚动
+                snap: 1 / (panels.length - 1), // 滚动后吸附到最接近的一张图
+                end: () => "+=" + document.querySelector(".horizontal-scroll-wrapper").offsetWidth
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>材料库 - FLIP Carousel</title>
+    <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        .wrapper {
+          width: 100%;
+          height: 100vh;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .container {
+          display: flex;
+          padding: 10px;
+          gap: 10px;
+          border: 2px dashed #555;
+          border-radius: 15px;
+          background-color: #1a1a1a;
+        }
+
+        img {
+          width: 20vw;
+          aspect-ratio: 1; /* 保持图片为正方形，适合花砖 */
+          object-fit: cover;
+          position: relative;
+          border-radius: 8px;
+        }
+
+        .buttons {
+          margin-top: 30px;
+          display: flex;
+          gap: 20px;
+        }
+
+        button {
+          padding: 10px 24px;
+          font-size: 1rem;
+          cursor: pointer;
+          border: none;
+          border-radius: 6px;
+          background-color: #333;
+          color: white;
+          transition: background-color 0.2s, transform 0.1s;
+        }
+
+        button:hover {
+          background-color: #555;
+        }
+
+        button:active {
+          transform: scale(0.95);
+        }
+
+        .hide {
+          display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+      <div class="container">
+        <img src="/Users/dufangchi/Documents/材料库raw_resize/小花砖/小花砖_1-花砖_仿古砖_法式复古植物花砖贴图  更多免费资料到www.172pay.com.jpg" alt="" />
+        <img src="/Users/dufangchi/Documents/材料库raw_resize/小花砖/小花砖_1-花砖_北欧简约花砖贴图  更多免费资料到www.172pay.com.jpg" alt="" />
+        <img src="/Users/dufangchi/Documents/材料库raw_resize/小花砖/小花砖_1-花砖_墨绿色造型雕花瓷砖贴图  更多免费资料到www.172pay.com.jpg" alt="" />
+        <img src="/Users/dufangchi/Documents/材料库raw_resize/小花砖/小花砖_1-花砖_复古墨绿色几何图案花砖贴图  更多免费资料到www.172pay.com.jpg" alt="" />
+      </div>
+      <div class="buttons">
+        <button id="prev">Previous</button>
+        <button id="next">Next</button>
+      </div>
+    </div>
+
+    <!-- 引入 GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Flip.min.js"></script>
+
+    <script>
+        console.clear();
+        gsap.registerPlugin(Flip);
+
+        const container = document.querySelector(".container");
+        const nextBtn = document.getElementById("next");
+        const prevBtn = document.getElementById("prev");
+        let isAnimating = false;
+
+        nextBtn.addEventListener("click", () => {
+          if (isAnimating) return;
+          isAnimating = true;
+          updateCaterpillar(true);
+        });
+        
+        prevBtn.addEventListener("click", () => {
+          if (isAnimating) return;
+          isAnimating = true;
+          updateCaterpillar(false);
+        });
+
+        const updateCaterpillar = (forward) => {
+          const cards = gsap.utils.toArray("img", container);
+          const first = cards[0];
+          const last = cards[cards.length - 1];
+          const state = Flip.getState(cards);
+          let newCard = document.createElement("img");
+          gsap.set(newCard, { scale: 0, opacity: 0 });
+
+          if (forward) {
+            newCard.src = first.src;
+            container.append(newCard);
+            first.classList.add("hide");
+          } else {
+            newCard.src = last.src;
+            container.prepend(newCard);
+            last.classList.add("hide");
+          }
+          
+          Flip.from(state, {
+            targets: "img",
+            fade: true,
+            absoluteOnLeave: true,
+            duration: 0.6,
+            ease: "power2.inOut", // 增加了一点缓动效果让动画更舒服
+            onEnter: (els) => {
+              gsap.to(els, {
+                opacity: 1,
+                scale: 1,
+                duration: 0.6,
+                ease: "power2.inOut",
+                transformOrigin: forward ? "bottom right" : "bottom left"
+              });
+            },
+            onLeave: (els) => {
+              gsap.to(els, {
+                opacity: 0,
+                scale: 0,
+                duration: 0.6,
+                ease: "power2.inOut",
+                transformOrigin: forward ? "bottom left" : "bottom right",
+                onComplete: () => {
+                  els[0].remove();
+                  isAnimating = false;
+                }
+              });
+            }
+          });
+        };
+    </script>
+</body>
+</html>

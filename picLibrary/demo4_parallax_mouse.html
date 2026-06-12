@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>材料库 - 视差景深跟随特效 (GSAP Mouse Move)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            color: #fff;
+            overflow: hidden; /* 防止滚动 */
+            font-family: "Helvetica Neue", Arial, sans-serif;
+            height: 100vh;
+        }
+
+        .title-layer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .title-layer h1 {
+            font-size: 5rem;
+            margin: 0;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+        }
+
+        .title-layer p {
+            font-size: 1.2rem;
+            color: #aaa;
+            margin-top: 10px;
+        }
+
+        .gallery-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            perspective: 1000px;
+        }
+
+        .floating-item {
+            position: absolute;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            transition: transform 0.1s ease-out;
+        }
+
+        .floating-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* 手动定位一些图片 */
+        .item-1 { width: 300px; height: 400px; top: 10%; left: 5%; z-index: 1; }
+        .item-2 { width: 250px; height: 250px; bottom: 15%; left: 15%; z-index: 3; }
+        .item-3 { width: 350px; height: 250px; top: 20%; right: 10%; z-index: 2; }
+        .item-4 { width: 200px; height: 300px; bottom: 10%; right: 20%; z-index: 4; }
+        .item-5 { width: 400px; height: 400px; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 5; opacity: 0.2; } /* 背景大图 */
+
+    </style>
+</head>
+<body>
+
+    <div class="title-layer">
+        <h1 id="main-title">高级材料库</h1>
+        <p>移动鼠标体验景深与视差效果</p>
+    </div>
+
+    <div class="gallery-container" id="gallery-container">
+        <!-- JS注入 -->
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <script>
+        const images = [
+            '小花砖_1-花砖_仿古砖_法式复古植物花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_北欧简约花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_墨绿色造型雕花瓷砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝法式米黄色花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝灰白色银杏叶花砖贴图  更多免费资料到www.172pay.com.jpg'
+        ];
+
+        const basePath = '/Users/dufangchi/Documents/材料库raw_resize/小花砖/';
+        const container = document.getElementById('gallery-container');
+
+        // 生成DOM
+        images.forEach((imgName, index) => {
+            const item = document.createElement('div');
+            item.className = `floating-item item-${index + 1}`;
+            // 设置一个随机的视差深度属性 data-depth
+            item.dataset.depth = (Math.random() * 0.5 + 0.1).toFixed(2); 
+            
+            const img = document.createElement('img');
+            img.src = basePath + imgName;
+            
+            item.appendChild(img);
+            container.appendChild(item);
+        });
+
+        // 鼠标跟随视差效果
+        const items = gsap.utils.toArray('.floating-item');
+        const title = document.getElementById('main-title');
+
+        document.addEventListener('mousemove', (e) => {
+            const x = (e.clientX / window.innerWidth) - 0.5; // -0.5 到 0.5
+            const y = (e.clientY / window.innerHeight) - 0.5;
+
+            // 标题的反向微动
+            gsap.to(title, {
+                x: -x * 50,
+                y: -y * 50,
+                duration: 1,
+                ease: "power2.out"
+            });
+
+            // 图片根据深度视差移动
+            items.forEach((item) => {
+                const depth = parseFloat(item.dataset.depth);
+                
+                // 增加一些 3D 旋转效果
+                gsap.to(item, {
+                    x: x * 200 * depth,
+                    y: y * 200 * depth,
+                    rotateX: -y * 20 * depth,
+                    rotateY: x * 20 * depth,
+                    duration: 1.5,
+                    ease: "power2.out"
+                });
+            });
+        });
+    </script>
+</body>
+</html>

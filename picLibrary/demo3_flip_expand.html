@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>材料库 - Flip放大详情页特效 (GSAP Flip)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 40px;
+            background-color: #1a1a1a;
+            color: #fff;
+            font-family: sans-serif;
+        }
+        h1 { text-align: center; margin-bottom: 40px; }
+        
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .thumb {
+            width: 100%;
+            aspect-ratio: 1;
+            cursor: pointer;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+        
+        .thumb:hover img {
+            transform: scale(1.05);
+        }
+
+        /* 详情视图 (全屏) */
+        .detail-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .detail-view.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .detail-content {
+            width: 80vw;
+            height: 80vh;
+            max-width: 1000px;
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .detail-image-container {
+            width: 50%;
+            height: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            /* Flip 目标位置 */
+        }
+
+        .detail-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .detail-text {
+            width: 50%;
+            opacity: 0;
+            transform: translateX(30px);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            font-size: 40px;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>点击查看材料详情 (GSAP Flip)</h1>
+
+    <div class="gallery" id="gallery">
+        <!-- 动态生成 -->
+    </div>
+
+    <!-- 详情弹窗 -->
+    <div class="detail-view" id="detail-view">
+        <div class="close-btn" id="close-btn">&times;</div>
+        <div class="detail-content">
+            <div class="detail-image-container" id="detail-image-container">
+                <!-- 放大后的图片会移动到这里 -->
+            </div>
+            <div class="detail-text" id="detail-text">
+                <h2 id="detail-title">材料名称</h2>
+                <p>这里是关于该花砖的详细描述。使用GSAP Flip插件，可以在缩略图和全屏大图之间实现无缝平滑的过渡动画。这对于材料库展示是非常震撼的交互体验。</p>
+                <p>规格：800x800</p>
+                <p>材质：陶瓷 / 岩板</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/Flip.min.js"></script>
+
+    <script>
+        gsap.registerPlugin(Flip);
+
+        const images = [
+            '小花砖_1-花砖_仿古砖_法式复古植物花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_北欧简约花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_墨绿色造型雕花瓷砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝法式米黄色花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_无缝灰白色银杏叶花砖贴图  更多免费资料到www.172pay.com.jpg',
+            '小花砖_1-花砖_现代简约花砖贴图  更多免费资料到www.172pay.com.jpg'
+        ];
+
+        const basePath = '/Users/dufangchi/Documents/材料库raw_resize/小花砖/';
+        const gallery = document.getElementById('gallery');
+        const detailView = document.getElementById('detail-view');
+        const detailImageContainer = document.getElementById('detail-image-container');
+        const detailText = document.getElementById('detail-text');
+        const detailTitle = document.getElementById('detail-title');
+        
+        let activeImage = null; // 当前放大的图片元素
+        let activeThumbContainer = null; // 原始的容器
+
+        images.forEach((imgName, index) => {
+            const thumb = document.createElement('div');
+            thumb.className = 'thumb';
+            
+            const img = document.createElement('img');
+            img.src = basePath + imgName;
+            img.dataset.name = `花砖样式 0${index + 1}`;
+            
+            thumb.appendChild(img);
+            gallery.appendChild(thumb);
+
+            // 点击缩略图放大
+            thumb.addEventListener('click', () => {
+                activeImage = img;
+                activeThumbContainer = thumb;
+                detailTitle.textContent = img.dataset.name;
+
+                // 1. 记录初始状态 (在缩略图中的状态)
+                const state = Flip.getState(activeImage);
+
+                // 2. 改变DOM结构 (将图片移动到详情容器)
+                detailImageContainer.appendChild(activeImage);
+                detailView.classList.add('active');
+
+                // 3. 执行Flip动画
+                Flip.from(state, {
+                    duration: 0.6,
+                    ease: "power3.inOut",
+                    onComplete: () => {
+                        // 动画完成后显示文字
+                        gsap.to(detailText, { opacity: 1, x: 0, duration: 0.4 });
+                    }
+                });
+            });
+        });
+
+        // 点击关闭
+        document.getElementById('close-btn').addEventListener('click', () => {
+            if (!activeImage) return;
+
+            // 隐藏文字
+            gsap.to(detailText, { opacity: 0, x: 30, duration: 0.2 });
+            detailView.classList.remove('active');
+
+            // 1. 记录初始状态 (在详情页中的状态)
+            const state = Flip.getState(activeImage);
+
+            // 2. 改变DOM结构 (将图片放回原来的缩略图容器)
+            activeThumbContainer.appendChild(activeImage);
+
+            // 3. 执行Flip动画
+            Flip.from(state, {
+                duration: 0.6,
+                ease: "power3.inOut"
+            });
+            
+            activeImage = null;
+        });
+    </script>
+</body>
+</html>
